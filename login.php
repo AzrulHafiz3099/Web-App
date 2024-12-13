@@ -2,26 +2,35 @@
 // Database connection
 @include 'db.php';
 session_start();
+
 if (isset($_POST['login'])) {
     // Fetch form data
     $username = $_POST['username'];
-    $password = md5($_POST['password']);
+    $password = $_POST['password'];
 
-    // Query admin_login
-    $sql = "SELECT * FROM admin_login WHERE username='$username' && password_hash='$password'";
+    // Query user_account
+    $sql = "SELECT * FROM user_account WHERE Email='$username'";
     $result = mysqli_query($conn, $sql);
 
     if (mysqli_num_rows($result) > 0) {
-        $row = mysqli_fetch_array($result);
-        session_start();
-        $_SESSION['loggedin'] = true;
-        header('Location: index.php');
+        $row = mysqli_fetch_assoc($result);
+
+        // Verify password
+        if (password_verify($password, $row['Password'])) {
+            session_start();
+            $_SESSION['loggedin'] = true;
+            $_SESSION['UserID'] = $row['UserID'];
+            $_SESSION['Role'] = $row['Role'];
+            header('Location: index.php');
+        } else {
+            echo '<script>alert("Incorrect username or password!")</script>';
+        }
     } else {
-        echo '<script>alert("INCORRECT USERNAME OR PASSWORD!")</script>';
-        $error1[] = 'INCORRECT USERNAME OR PASSWORD!';
+        echo '<script>alert("Incorrect username or password!")</script>';
     }
 }
 ?>
+
 
 <!DOCTYPE html>
 <html lang="en">
