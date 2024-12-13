@@ -1,5 +1,30 @@
 <?php
 session_start();
+@include 'db.php';
+
+// Check if the user is logged in
+if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
+    header('Location: login.php');
+    exit;
+}
+
+// Fetch logged-in user's details
+$UserID = $_SESSION['UserID'];
+$sql = "SELECT Fullname, Role FROM user_account WHERE UserID = '$UserID'";
+$result = mysqli_query($conn, $sql);
+
+if (mysqli_num_rows($result) > 0) {
+    $user = mysqli_fetch_assoc($result);
+} else {
+    echo '<script>alert("User data not found!");</script>';
+    exit;
+}
+
+// Fetch counts for dashboard
+$pharmacy_accounts = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) as total FROM user_account"))['total'];
+$drug_inventory = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) as total FROM Drug_Details"))['total'];
+$supply_orders = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) as total FROM Drug_Orders"))['total'];
+$current_stock = mysqli_fetch_assoc(mysqli_query($conn, "SELECT SUM(Current_Stock) as total FROM Drug_Stock"))['total'];
 ?>
 
 <!DOCTYPE html>
@@ -53,10 +78,6 @@ session_start();
             margin: 20px 0;
         }
 
-        .sidebar .sidebar-brand-icon {
-            margin-right: 10px;
-        }
-
         .content-wrapper {
             margin-left: 250px;
             padding: 20px;
@@ -85,6 +106,15 @@ session_start();
             font-size: 1.5em;
         }
 
+        .header-title {
+            font-size: 2em;
+            color: #f83600;
+            font-weight: bold;
+            margin-bottom: 20px;
+            border-left: 5px solid #ff9a3c;
+            padding-left: 10px;
+        }
+
         .card {
             background-color: white;
             border-radius: 20px;
@@ -92,6 +122,11 @@ session_start();
             padding: 20px;
             margin-bottom: 20px;
             transition: transform 0.3s ease, box-shadow 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex: 1;
+            min-width: 200px;
         }
 
         .card:hover {
@@ -99,13 +134,13 @@ session_start();
             box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
         }
 
-        .card .card-body {
+        .card-body {
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
 
-        .card .text-xs {
+        .text-xs {
             font-size: 0.9em;
             color: #6c757d;
             margin-bottom: 10px;
@@ -113,7 +148,7 @@ session_start();
             font-weight: bold;
         }
 
-        .card .h5 {
+        .h5 {
             font-size: 1.8em;
             margin: 0;
             color: #f83600;
@@ -128,56 +163,7 @@ session_start();
             display: flex;
             flex-wrap: wrap;
             gap: 20px;
-        }
-
-        .col {
-            flex: 1;
-            min-width: 200px;
-        }
-
-        .header-title {
-            font-size: 2em;
-            color: #f83600;
-            font-weight: bold;
-            margin-bottom: 20px;
-            border-left: 5px solid #ff9a3c;
-            padding-left: 10px;
-        }
-
-        .button {
-            background: linear-gradient(135deg, #ff9a3c, #f83600);
-            border: none;
-            border-radius: 25px;
-            padding: 10px 20px;
-            color: white;
-            font-size: 1em;
-            cursor: pointer;
-            transition: background 0.3s ease;
-        }
-
-        .button:hover {
-            background: linear-gradient(135deg, #f83600, #ff9a3c);
-        }
-
-        @media (max-width: 768px) {
-            .sidebar {
-                width: 100%;
-                height: auto;
-                position: relative;
-            }
-
-            .content-wrapper {
-                margin-left: 0;
-            }
-
-            .topbar {
-                flex-direction: column;
-                align-items: flex-start;
-            }
-
-            .row {
-                flex-direction: column;
-            }
+            justify-content: flex-start;
         }
     </style>
 </head>
@@ -188,9 +174,11 @@ session_start();
         <div class="sidebar-brand">
             <i class="fas fa-pills"></i> Pharmacy Manager
         </div>
+        <a href="profile.php">Profile</a>
         <a href="index.php">Dashboard</a>
         <a href="pharmacy_accounts.php">Pharmacy Accounts</a>
         <a href="drug_inventory.php">Drug Inventory</a>
+        <a href="logout.php">Logout</a>
     </div>
 
     <!-- Content Wrapper -->
@@ -199,34 +187,62 @@ session_start();
         <div class="topbar">
             <div class="user-info">
                 <i class="fas fa-user-circle"></i>
-                <span>Welcome, Admin</span>
+                <span>Welcome, <?= htmlspecialchars($user['Fullname']); ?> (<?= htmlspecialchars($user['Role']); ?>)</span>
             </div>
         </div>
 
-        <!-- Main Dashboard Content -->
+        <!-- Dashboard Overview -->
         <div class="header-title">Dashboard Overview</div>
 
         <div class="row">
+            <!-- Pharmacy Accounts -->
             <div class="col">
                 <div class="card">
                     <div class="card-body">
                         <div>
                             <div class="text-xs">Pharmacy Accounts</div>
-                            <div class="h5">5</div>
+                            <div class="h5"><?= $pharmacy_accounts; ?></div>
                         </div>
                         <i class="fas fa-user"></i>
                     </div>
                 </div>
             </div>
 
+            <!-- Drug Inventory -->
             <div class="col">
                 <div class="card">
                     <div class="card-body">
                         <div>
                             <div class="text-xs">Drug Inventory</div>
-                            <div class="h5">20</div>
+                            <div class="h5"><?= $drug_inventory; ?></div>
                         </div>
                         <i class="fas fa-boxes"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Supply Orders -->
+            <div class="col">
+                <div class="card">
+                    <div class="card-body">
+                        <div>
+                            <div class="text-xs">Supply Orders</div>
+                            <div class="h5"><?= $supply_orders; ?></div>
+                        </div>
+                        <i class="fas fa-truck"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Current Stock -->
+            <div class="col">
+                <div class="card">
+                    <div class="card-body">
+                        <div>
+                            <div class="text-xs">Total Stock</div>
+                            <div class="h5"><?= $current_stock ? $current_stock : 0; ?></div>
+                        </div>
+                        <i class="fas fa-cubes"></i>
                     </div>
                 </div>
             </div>
