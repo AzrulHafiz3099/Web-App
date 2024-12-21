@@ -1,6 +1,6 @@
 <?php
 session_start();
-@include 'db.php';
+@include 'db_connection.php';
 
 // Check if the user is logged in
 if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
@@ -13,7 +13,7 @@ $UserID = $_SESSION['UserID'];
 $sql = "SELECT Fullname, Role FROM user_account WHERE UserID = '$UserID'";
 $result = mysqli_query($conn, $sql);
 
-if (mysqli_num_rows($result) > 0) {
+if ($result && mysqli_num_rows($result) > 0) {
     $user = mysqli_fetch_assoc($result);
 } else {
     echo '<script>alert("User data not found!");</script>';
@@ -21,22 +21,23 @@ if (mysqli_num_rows($result) > 0) {
 }
 
 // Fetch counts for dashboard
-$pharmacy_accounts = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) as total FROM user_account"))['total'];
-$drug_inventory = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) as total FROM Drug_Details"))['total'];
-$supply_orders = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) as total FROM Drug_Orders"))['total'];
-$current_stock = mysqli_fetch_assoc(mysqli_query($conn, "SELECT SUM(Current_Stock) as total FROM Drug_Stock"))['total'];
+$pharmacy_accounts = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) as total FROM vendor"))['total'];
+$drug_inventory = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) as total FROM drug_details"))['total'];
+$supply_orders = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) as total FROM drug_supply"))['total'];
+$current_stock = mysqli_fetch_assoc(mysqli_query($conn, "SELECT SUM(CurrentStock) as total FROM drug_inventory"))['total'];
 ?>
 
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pharmacy Management Dashboard</title>
+    <title>Pharmacy Manager</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <!-- Include Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&family=Poppins:wght@500;700&display=swap" rel="stylesheet">
     <style>
+        /* General Styling */
         body {
             font-family: 'Poppins', sans-serif;
             margin: 0;
@@ -44,6 +45,7 @@ $current_stock = mysqli_fetch_assoc(mysqli_query($conn, "SELECT SUM(Current_Stoc
             background: linear-gradient(135deg, #fdfcfb, #f3c623);
         }
 
+        /* Sidebar */
         .sidebar {
             width: 250px;
             height: 100vh;
@@ -72,183 +74,167 @@ $current_stock = mysqli_fetch_assoc(mysqli_query($conn, "SELECT SUM(Current_Stoc
             color: #ffd700;
         }
 
-        .sidebar .sidebar-brand {
-            font-size: 1.5em;
-            text-align: center;
-            margin: 20px 0;
+        /* Logo Styling */
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 20px;
         }
 
+        .logo-icon {
+            background: linear-gradient(135deg, #ff9a3c, #f83600);
+            width: 40px;
+            height: 40px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-radius: 50%;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .logo-icon i {
+            color: white;
+            font-size: 1.5em;
+        }
+
+        .logo h2 {
+            font-size: 1.7em;
+            font-weight: bold;
+            color: #fdfcfb;
+            margin: 0;
+            font-family: 'Roboto', sans-serif; /* Apply the custom font */
+            text-shadow: 1px 1px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Main Content Area */
         .content-wrapper {
             margin-left: 250px;
             padding: 20px;
             min-height: 100vh;
         }
 
-        .topbar {
-            background-color: white;
-            padding: 15px 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            margin-bottom: 20px;
-            border-radius: 12px;
-        }
-
-        .topbar .user-info {
-            display: flex;
-            align-items: center;
-            color: #f83600;
-        }
-
-        .topbar .user-info i {
-            margin-right: 10px;
-            font-size: 1.5em;
-        }
-
         .header-title {
-            font-size: 2em;
+            font-size: 2.5em;
             color: #f83600;
             font-weight: bold;
             margin-bottom: 20px;
             border-left: 5px solid #ff9a3c;
             padding-left: 10px;
+            font-family: 'Poppins', sans-serif; /* Apply the custom font */
         }
 
-        .card {
-            background-color: white;
-            border-radius: 20px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        /* User Info Section */
+        .user-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             padding: 20px;
+            background-color: #fdfcfb;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             margin-bottom: 20px;
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            flex: 1;
-            min-width: 200px;
         }
 
-        .card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
-        }
-
-        .card-body {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .text-xs {
-            font-size: 0.9em;
-            color: #6c757d;
-            margin-bottom: 10px;
-            text-transform: uppercase;
-            font-weight: bold;
-        }
-
-        .h5 {
+        .user-info h2 {
             font-size: 1.8em;
-            margin: 0;
             color: #f83600;
+            font-weight: bold;
+            margin: 0;
         }
 
-        .card i {
-            font-size: 2em;
-            color: #ddd;
+        .user-info span {
+            font-size: 1.2em;
+            color: #555;
         }
 
-        .row {
+        /* Box Layout */
+        .content-boxes {
             display: flex;
             flex-wrap: wrap;
             gap: 20px;
-            justify-content: flex-start;
+        }
+
+        .box {
+            flex: 1 1 calc(25% - 20px); /* Boxes take 25% width, minus gap */
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            color: #333;
+            font-size: 1.2em;
+            font-weight: bold;
+        }
+
+        .box p {
+            margin: 0;
+            font-size: 1.5em;
+            color: #f83600;
+        }
+
+        .box i {
+            font-size: 2em;
+            color: #ff9a3c;
+            margin-bottom: 10px;
         }
     </style>
 </head>
-
 <body>
-    <!-- Sidebar -->
     <div class="sidebar">
-        <div class="sidebar-brand">
-            <i class="fas fa-pills"></i> Pharmacy Manager
+        <!-- Logo -->
+        <div class="logo">
+            <div class="logo-icon">
+                <i class="fas fa-pills"></i>
+            </div>
+            <h2>Pharmacy Manager</h2>
         </div>
-        <a href="profile.php">Profile</a>
-        <a href="index.php">Dashboard</a>
-        <a href="pharmacy_accounts.php">Pharmacy Accounts</a>
-        <a href="drug_inventory.php">Drug Inventory</a>
+
+        <!-- Sidebar Navigation -->
+        <a href="#">Home</a>
+        <a href="#">Manage Drugs</a>
+        <a href="drug_inventory.php">Inventory</a>
+        <a href="#">Orders</a>
         <a href="logout.php">Logout</a>
     </div>
 
-    <!-- Content Wrapper -->
     <div class="content-wrapper">
-        <!-- Topbar -->
-        <div class="topbar">
-            <div class="user-info">
-                <i class="fas fa-user-circle"></i>
-                <span>Welcome, <?= htmlspecialchars($user['Fullname']); ?> (<?= htmlspecialchars($user['Role']); ?>)</span>
+        <div class="header-title">Pharmacy Manager</div>
+        
+        <!-- User Info Section -->
+        <div class="user-info">
+            <div>
+                <h2>Welcome, <?php echo $user['Fullname']; ?>!</h2>
+                <span>Role: <?php echo $user['Role']; ?></span>
+            </div>
+            <div>
+                <i class="fas fa-user-circle" style="font-size: 3em; color: #ff9a3c;"></i>
             </div>
         </div>
-
-        <!-- Dashboard Overview -->
-        <div class="header-title">Dashboard Overview</div>
-
-        <div class="row">
-            <!-- Pharmacy Accounts -->
-            <div class="col">
-                <div class="card">
-                    <div class="card-body">
-                        <div>
-                            <div class="text-xs">Pharmacy Accounts</div>
-                            <div class="h5"><?= $pharmacy_accounts; ?></div>
-                        </div>
-                        <i class="fas fa-user"></i>
-                    </div>
-                </div>
+        
+        <!-- Content Boxes -->
+        <div class="content-boxes">
+            <div class="box">
+                <i class="fas fa-user-md"></i>
+                <p><?php echo $pharmacy_accounts; ?></p>
+                Pharmacy Accounts
             </div>
-
-            <!-- Drug Inventory -->
-            <div class="col">
-                <div class="card">
-                    <div class="card-body">
-                        <div>
-                            <div class="text-xs">Drug Inventory</div>
-                            <div class="h5"><?= $drug_inventory; ?></div>
-                        </div>
-                        <i class="fas fa-boxes"></i>
-                    </div>
-                </div>
+            <div class="box">
+                <i class="fas fa-pills"></i>
+                <p><?php echo $drug_inventory; ?></p>
+                Drug Inventory
             </div>
-
-            <!-- Supply Orders -->
-            <div class="col">
-                <div class="card">
-                    <div class="card-body">
-                        <div>
-                            <div class="text-xs">Supply Orders</div>
-                            <div class="h5"><?= $supply_orders; ?></div>
-                        </div>
-                        <i class="fas fa-truck"></i>
-                    </div>
-                </div>
+            <div class="box">
+                <i class="fas fa-truck"></i>
+                <p><?php echo $supply_orders; ?></p>
+                Supply Orders
             </div>
-
-            <!-- Current Stock -->
-            <div class="col">
-                <div class="card">
-                    <div class="card-body">
-                        <div>
-                            <div class="text-xs">Total Stock</div>
-                            <div class="h5"><?= $current_stock ? $current_stock : 0; ?></div>
-                        </div>
-                        <i class="fas fa-cubes"></i>
-                    </div>
-                </div>
+            <div class="box">
+                <i class="fas fa-box-open"></i>
+                <p><?php echo $current_stock; ?></p>
+                Current Stock
             </div>
         </div>
     </div>
 </body>
-
 </html>
-              
