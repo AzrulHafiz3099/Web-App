@@ -203,14 +203,18 @@ $current_stock = mysqli_fetch_assoc(mysqli_query($conn, "SELECT SUM(CurrentStock
         
         <!-- User Info Section -->
         <div class="user-info">
-            <div>
-                <h2>Welcome, <?php echo $user['Fullname']; ?>!</h2>
-                <span>Role: <?php echo $user['Role']; ?></span>
-            </div>
-            <div>
-                <i class="fas fa-user-circle" style="font-size: 3em; color: #ff9a3c;"></i>
-            </div>
-        </div>
+    <div>
+        <h2>Welcome, <?php echo $user['Fullname']; ?>!</h2>
+        <span>Role: <?php echo $user['Role']; ?></span>
+    </div>
+    <div>
+        <!-- Add the link around the profile icon -->
+        <a href="profile.php" title="View Profile">
+            <i class="fas fa-user-circle" style="font-size: 3em; color: #ff9a3c; cursor: pointer;"></i>
+        </a>
+    </div>
+</div>
+
         
         <!-- Content Boxes -->
         <div class="content-boxes">
