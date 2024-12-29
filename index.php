@@ -192,7 +192,7 @@ $current_stock = mysqli_fetch_assoc(mysqli_query($conn, "SELECT SUM(CurrentStock
 
         <!-- Sidebar Navigation -->
         <a href="#">Home</a>
-        <a href="#">Manage Drugs</a>
+        <a href="manage_drug.php">ManageDrugs</a>
         <a href="drug_inventory.php">Inventory</a>
         <a href="#">Orders</a>
         <a href="logout.php">Logout</a>
