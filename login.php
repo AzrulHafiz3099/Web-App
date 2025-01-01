@@ -1,35 +1,52 @@
 <?php
-// Database connection
-@include 'db.php';
+@include 'db_connection.php';
 session_start();
 
+$errorMsg = ''; // To store error messages
+
 if (isset($_POST['login'])) {
-    // Fetch form data
-    $username = $_POST['username'];
+    $username = mysqli_real_escape_string($conn, $_POST['username']);
     $password = $_POST['password'];
 
-    // Query user_account
-    $sql = "SELECT * FROM user_account WHERE Email='$username'";
-    $result = mysqli_query($conn, $sql);
+    // Prepare the SQL statement
+    $sql = "SELECT * FROM user_account WHERE Email = ?";
+    if ($stmt = mysqli_prepare($conn, $sql)) {
+        mysqli_stmt_bind_param($stmt, "s", $username);
+        mysqli_stmt_execute($stmt);
+        $result = mysqli_stmt_get_result($stmt);
 
-    if (mysqli_num_rows($result) > 0) {
-        $row = mysqli_fetch_assoc($result);
+        if ($row = mysqli_fetch_assoc($result)) {
+            // Debugging - Only display these if you are troubleshooting
+            echo "Input Password: $password<br>";
+            echo "Stored Hashed Password: " . $row['Password'] . "<br>";
 
-        // Verify password
-        if (password_verify($password, $row['Password'])) {
-            session_start();
-            $_SESSION['loggedin'] = true;
-            $_SESSION['UserID'] = $row['UserID'];
-            $_SESSION['Role'] = $row['Role'];
-            header('Location: index.php');
+            // Verify password
+            if (password_verify($password, $row['Password'])) {
+                // Successful login
+                $_SESSION['loggedin'] = true;
+                $_SESSION['UserID'] = $row['UserID'];
+                $_SESSION['Role'] = $row['Role'];
+
+                // Regenerate session ID to prevent session fixation attacks
+                session_regenerate_id();
+
+                header('Location: index.php');
+                exit;
+            } else {
+                $errorMsg = "Incorrect username or password!";
+            }
         } else {
-            echo '<script>alert("Incorrect username or password!")</script>';
+            $errorMsg = "Incorrect username or password!";
         }
+
+        mysqli_stmt_close($stmt);
     } else {
-        echo '<script>alert("Incorrect username or password!")</script>';
+        $errorMsg = "Error preparing statement: " . mysqli_error($conn);
     }
 }
 ?>
+
+
 
 
 <!DOCTYPE html>
@@ -117,18 +134,17 @@ if (isset($_POST['login'])) {
         </div>
         <h2>Admin Login</h2>
         <form action="" method="post">
-            <input type="text" id="username" name="username" class="form-control" placeholder="Enter your username" required>
-            <input type="password" id="password" name="password" class="form-control" placeholder="Enter your password" required>
+            <input type="text" name="username" class="form-control" placeholder="Enter your username" required>
+            <input type="password" name="password" class="form-control" placeholder="Enter your password" required>
             <button type="submit" class="btn" name="login">Login</button>
         </form>
-        <?php
-        if (isset($error1)) {
-            foreach ($error1 as $error1) {
-                echo '<div class="error-msg">' . $error1 . '</div>';
-            }
-        }
-        ?>
+        
+        <!-- Display error message -->
+        <?php if (!empty($errorMsg)): ?>
+            <div class="error-msg"><?php echo $errorMsg; ?></div>
+        <?php endif; ?>
     </div>
 </body>
 
 </html>
+
