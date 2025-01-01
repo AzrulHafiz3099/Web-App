@@ -1,52 +1,52 @@
-<?php
+<<?php
 @include 'db_connection.php';
 session_start();
 
 // Check if the 'id' parameter is provided and valid
-if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
-    $_SESSION['message'] = "Invalid request. Drug ID not provided or invalid.";
-    header("Location: drug_inventory.php");
+if (!isset($_GET['id']) || empty($_GET['id'])) {
+    $_SESSION['message'] = "Invalid request. Supply ID not provided.";
+    header("Location: drug_supply.php");
     exit();
 }
 
-$inventoryID = $_GET['id'];
+$supplyID = $_GET['id'];
 
-// Fetch the drug record
-$query = "SELECT * FROM drug_inventory WHERE InventoryID = ?";
+// Fetch the supply record
+$query = "SELECT * FROM drug_supply WHERE SupplyID = ?";
 $stmt = $conn->prepare($query);
-$stmt->bind_param("i", $inventoryID);
+$stmt->bind_param("s", $supplyID);
 $stmt->execute();
 $result = $stmt->get_result();
 
 if ($result->num_rows === 0) {
-    $_SESSION['message'] = "Drug not found.";
-    header("Location: drug_inventory.php");
+    $_SESSION['message'] = "Supply record not found.";
+    header("Location: drug_supply.php");
     exit();
 }
 
-$drug = $result->fetch_assoc();
+$supply = $result->fetch_assoc();
 $stmt->close();
 
 // Handle the form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Sanitize and validate user inputs
-    $inventoryID = $_POST['inventory_id'];
-    $currentStock = intval($_POST['current_stock']);
-    $reorderLevel = intval($_POST['reorder_level']);
-    $lastRestockDate = $_POST['last_restock_date'];
-    $expirationDate = $_POST['expiration_date'];
+    $drugHeaderID = $_POST['drug_header_id'];
+    $vendorID = $_POST['vendor_id'];
+    $quantity = intval($_POST['quantity']);
+    $manufactureDate = $_POST['manufacture_date'];
+    $expiryDate = $_POST['expiry_date'];
 
-    // Update the drug record
-    $sql = "UPDATE drug_inventory 
-            SET CurrentStock = ?, ReorderLevel = ?, LastRestockDate = ?, ExpirationDate = ? 
-            WHERE InventoryID = ?";
+    // Update the supply record
+    $sql = "UPDATE drug_supply 
+            SET DrugHeaderID = ?, VendorID = ?, Quantity = ?, Manufacture_Date = ?, ExpiryDate = ? 
+            WHERE SupplyID = ?";
     $stmt = $conn->prepare($sql);
-    $stmt->bind_param("iissi", $currentStock, $reorderLevel, $lastRestockDate, $expirationDate, $inventoryID);
+    $stmt->bind_param("ssisss", $drugHeaderID, $vendorID, $quantity, $manufactureDate, $expiryDate, $supplyID);
 
     if ($stmt->execute()) {
-        $_SESSION['message'] = "Drug updated successfully!";
+        $_SESSION['message'] = "Supply record updated successfully!";
     } else {
-        $_SESSION['message'] = "Error updating drug: " . $conn->error;
+        $_SESSION['message'] = "Error updating supply record: " . $conn->error;
     }
 
     $stmt->close();
@@ -54,6 +54,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     exit();
 }
 ?>
+
 
 <!DOCTYPE html>
 <html lang="en">
@@ -151,24 +152,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <body>
     <div class="container">
-        <h1>Edit Drug</h1>
+        <h1>Edit Drug Supply</h1>
         <form method="post" action="">
-            <input type="hidden" name="inventory_id" value="<?php echo htmlspecialchars($drug['InventoryID']); ?>">
+            <label>Drug Header ID:</label>
+            <input type="text" name="drug_header_id" value="<?php echo htmlspecialchars($supply['DrugHeaderID']); ?>">
 
-            <label>Current Stock:</label>
-            <input type="number" name="current_stock" value="<?php echo htmlspecialchars($drug['CurrentStock']); ?>" required>
+            <label>Vendor ID:</label>
+            <input type="text" name="vendor_id" value="<?php echo htmlspecialchars($supply['VendorID']); ?>">
 
-            <label>Reorder Level:</label>
-            <input type="number" name="reorder_level" value="<?php echo htmlspecialchars($drug['ReorderLevel']); ?>" required>
+            <label>Quantity:</label>
+            <input type="number" name="quantity" value="<?php echo htmlspecialchars($supply['Quantity']); ?>" required>
 
-            <label>Last Restock Date:</label>
-            <input type="date" name="last_restock_date" value="<?php echo htmlspecialchars($drug['LastRestockDate']); ?>">
+            <label>Manufacture Date:</label>
+            <input type="date" name="manufacture_date" value="<?php echo htmlspecialchars($supply['Manufacture_Date']); ?>">
 
-            <label>Expiration Date:</label>
-            <input type="date" name="expiration_date" value="<?php echo htmlspecialchars($drug['ExpirationDate']); ?>">
+            <label>Expiry Date:</label>
+            <input type="date" name="expiry_date" value="<?php echo htmlspecialchars($supply['ExpiryDate']); ?>">
 
             <div class="button-group">
-                <button type="submit" class="btn btn-green">Update Drug</button>
+                <button type="submit" class="btn btn-green">Update Supply</button>
                 <a href="drug_inventory.php" class="btn btn-red">Cancel</a>
             </div>
         </form>
