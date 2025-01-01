@@ -1,6 +1,6 @@
 <?php
 session_start();
-@include 'db.php';
+@include 'db_connection.php';
 
 // Check if the user is logged in
 if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
@@ -8,17 +8,29 @@ if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
     exit;
 }
 
-// Fetch user details from the database
+// Fetch user details from the database securely
 $UserID = $_SESSION['UserID'];
-$sql = "SELECT * FROM user_account WHERE UserID='$UserID'";
-$result = mysqli_query($conn, $sql);
+$sql = "SELECT * FROM user_account WHERE UserID = ?";
+if ($stmt = mysqli_prepare($conn, $sql)) {
+    mysqli_stmt_bind_param($stmt, "s", $UserID);
+    mysqli_stmt_execute($stmt);
+    $result = mysqli_stmt_get_result($stmt);
 
-if (mysqli_num_rows($result) > 0) {
-    $user = mysqli_fetch_assoc($result);
+    if (mysqli_num_rows($result) > 0) {
+        $user = mysqli_fetch_assoc($result);
+    } else {
+        echo '<script>alert("User data not found!");</script>';
+        exit;
+    }
+
+    mysqli_stmt_close($stmt);
 } else {
-    echo '<script>alert("User data not found!");</script>';
+    echo "Error preparing statement: " . mysqli_error($conn);
     exit;
 }
+
+// Regenerate session ID for security after successful login
+session_regenerate_id();
 ?>
 
 <!DOCTYPE html>
@@ -90,14 +102,15 @@ if (mysqli_num_rows($result) > 0) {
 
 <body>
     <div class="profile-card">
-        <img src="<?= $user['ProfilePicture']; ?>" alt="Profile Picture">
+        <!-- Check if the user has a profile picture -->
+        <img src="<?= !empty($user['ProfilePicture']) ? $user['ProfilePicture'] : 'default-profile.png'; ?>" alt="Profile Picture">
         <h2><?= htmlspecialchars($user['Fullname']); ?></h2>
         <p><strong>Email:</strong> <?= htmlspecialchars($user['Email']); ?></p>
         <p><strong>Phone:</strong> <?= htmlspecialchars($user['Phonenumber']); ?></p>
-        <p><strong>Date of Birth:</strong> <?= htmlspecialchars($user['DateOfBirth']); ?></p>
+        <p><strong>Date of Birth:</strong> <?= htmlspecialchars($user['DateOFBirth']); ?></p>
         <p><strong>Role:</strong> <?= htmlspecialchars($user['Role']); ?></p>
         <a href="index.php" class="button">Back to Dashboard</a>
     </div>
 </body>
 
-</html>      
+</html>
