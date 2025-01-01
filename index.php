@@ -8,23 +8,32 @@ if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
     exit;
 }
 
-// Fetch logged-in user's details
+// Fetch logged-in user's details securely
 $UserID = $_SESSION['UserID'];
-$sql = "SELECT Fullname, Role FROM user_account WHERE UserID = '$UserID'";
-$result = mysqli_query($conn, $sql);
-
-if ($result && mysqli_num_rows($result) > 0) {
-    $user = mysqli_fetch_assoc($result);
+$sql = "SELECT Fullname, Role FROM user_account WHERE UserID = ?";
+if ($stmt = mysqli_prepare($conn, $sql)) {
+    mysqli_stmt_bind_param($stmt, "s", $UserID);
+    mysqli_stmt_execute($stmt);
+    $result = mysqli_stmt_get_result($stmt);
+    
+    if ($result && mysqli_num_rows($result) > 0) {
+        $user = mysqli_fetch_assoc($result);
+    } else {
+        echo '<script>alert("User data not found!");</script>';
+        exit;
+    }
+    mysqli_stmt_close($stmt);
 } else {
-    echo '<script>alert("User data not found!");</script>';
+    echo "Error preparing statement: " . mysqli_error($conn);
     exit;
 }
 
 // Fetch counts for dashboard
 $pharmacy_accounts = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) as total FROM vendor"))['total'];
-$drug_inventory = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) as total FROM drug_details"))['total'];
-$supply_orders = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) as total FROM drug_supply"))['total'];
-$current_stock = mysqli_fetch_assoc(mysqli_query($conn, "SELECT SUM(CurrentStock) as total FROM drug_inventory"))['total'];
+$drug_inventory = mysqli_fetch_assoc(mysqli_query($conn, "SELECT SUM(Quantity) as total FROM drug_supply"))['total'];
+$supply_orders = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) as total FROM `order`"))['total'];
+$drug_details = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) as total FROM `drug_details`"))['total'];
+
 ?>
 
 <!DOCTYPE html>
@@ -178,6 +187,27 @@ $current_stock = mysqli_fetch_assoc(mysqli_query($conn, "SELECT SUM(CurrentStock
             color: #ff9a3c;
             margin-bottom: 10px;
         }
+
+        /* Button Styling */
+        .report-button {
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .report-button a button {
+            background: #ff9a3c;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .report-button a button:hover {
+            background-color: #f83600;
+        }
     </style>
 </head>
 <body>
@@ -192,7 +222,7 @@ $current_stock = mysqli_fetch_assoc(mysqli_query($conn, "SELECT SUM(CurrentStock
 
         <!-- Sidebar Navigation -->
         <a href="#">Home</a>
-        <a href="manage_drug.php">ManageDrugs</a>
+        <a href="manage_drug.php">Manage Drugs</a>
         <a href="drug_inventory.php">Inventory</a>
         <a href="#">Orders</a>
         <a href="logout.php">Logout</a>
@@ -203,30 +233,28 @@ $current_stock = mysqli_fetch_assoc(mysqli_query($conn, "SELECT SUM(CurrentStock
         
         <!-- User Info Section -->
         <div class="user-info">
-    <div>
-        <h2>Welcome, <?php echo $user['Fullname']; ?>!</h2>
-        <span>Role: <?php echo $user['Role']; ?></span>
-    </div>
-    <div>
-        <!-- Add the link around the profile icon -->
-        <a href="profile.php" title="View Profile">
-            <i class="fas fa-user-circle" style="font-size: 3em; color: #ff9a3c; cursor: pointer;"></i>
-        </a>
-    </div>
-</div>
+            <div>
+                <h2>Welcome, <?php echo $user['Fullname']; ?>!</h2>
+                <span>Role: <?php echo $user['Role']; ?></span>
+            </div>
+            <div>
+                <a href="profile.php" title="View Profile">
+                    <i class="fas fa-user-circle" style="font-size: 3em; color: #ff9a3c; cursor: pointer;"></i>
+                </a>
+            </div>
+        </div>
 
-        
         <!-- Content Boxes -->
         <div class="content-boxes">
             <div class="box">
                 <i class="fas fa-user-md"></i>
                 <p><?php echo $pharmacy_accounts; ?></p>
-                Pharmacy Accounts
+                Vendor
             </div>
             <div class="box">
                 <i class="fas fa-pills"></i>
-                <p><?php echo $drug_inventory; ?></p>
-                Drug Inventory
+                <p><?php echo $drug_details; ?></p>
+                Drug Details
             </div>
             <div class="box">
                 <i class="fas fa-truck"></i>
@@ -235,9 +263,16 @@ $current_stock = mysqli_fetch_assoc(mysqli_query($conn, "SELECT SUM(CurrentStock
             </div>
             <div class="box">
                 <i class="fas fa-box-open"></i>
-                <p><?php echo $current_stock; ?></p>
-                Current Stock
+                <p><?php echo $drug_inventory; ?></p>
+                Drug Stock
             </div>
+        </div>
+
+        <!-- Download Report Button -->
+        <div class="report-button">
+            <a href="generate_report.php">
+                <button>Download Dashboard Report</button>
+            </a>
         </div>
     </div>
 </body>
