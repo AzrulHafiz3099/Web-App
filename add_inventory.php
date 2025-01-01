@@ -3,19 +3,20 @@
 session_start();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $drugID = $_POST['drug_id'];
-    $currentStock = $_POST['current_stock'];
-    $reorderLevel = $_POST['reorder_level'];
-    $lastRestockDate = $_POST['last_restock_date'];
-    $expirationDate = $_POST['expiration_date'];
+    $supplyID = $_POST['supply_id'];
+    $drugHeaderID = $_POST['drug_header_id'];
+    $vendorID = $_POST['vendor_id'];
+    $quantity = $_POST['quantity'];
+    $manufactureDate = $_POST['manufacture_date'];
+    $expiryDate = $_POST['expiry_date'];
 
-    $sql = "INSERT INTO drug_inventory (DrugID, CurrentStock, ReorderLevel, LastRestockDate, ExpirationDate) 
-            VALUES ('$drugID', '$currentStock', '$reorderLevel', '$lastRestockDate', '$expirationDate')";
+    $sql = "INSERT INTO drug_supply (SupplyID, DrugHeaderID, VendorID, Quantity, Manufacture_Date, ExpiryDate) 
+            VALUES ('$supplyID', '$drugHeaderID', '$vendorID', '$quantity', '$manufactureDate', '$expiryDate')";
 
     if (mysqli_query($conn, $sql)) {
-        $_SESSION['message'] = "Drug added successfully!";
+        $_SESSION['message'] = "Supply record added successfully!";
     } else {
-        $_SESSION['message'] = "Error adding drug: " . mysqli_error($conn);
+        $_SESSION['message'] = "Error adding supply record: " . mysqli_error($conn);
     }
 
     header("Location: drug_inventory.php");
@@ -29,7 +30,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Add Drug</title>
+    <title>Add Drug Supply</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -103,28 +104,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <body>
     <div class="container">
-        <h1>Add Drug</h1>
-        <form method="post" action="add_drug.php">
-            <label>Drug ID:</label>
-            <input type="text" name="drug_id" required>
+        <h1>Add Drug Supply</h1>
+        <form method="post" action="add_inventory.php">
+            <label>Supply ID:</label>
+            <input type="text" name="supply_id" required>
 
-            <label>Current Stock:</label>
-            <input type="number" name="current_stock" required>
+            <label>Drug Header ID:</label>
+            <input type="text" name="drug_header_id">
 
-            <label>Reorder Level:</label>
-            <input type="number" name="reorder_level" required>
+            <label>Vendor ID:</label>
+            <input type="text" name="vendor_id">
 
-            <label>Last Restock Date:</label>
-            <input type="date" name="last_restock_date">
+            <label>Quantity:</label>
+            <input type="number" name="quantity">
 
-            <label>Expiration Date:</label>
-            <input type="date" name="expiration_date">
+            <label>Manufacture Date:</label>
+            <input type="date" name="manufacture_date">
 
-            <button type="submit" class="btn btn-primary">Add Drug</button>
+            <label>Expiry Date:</label>
+            <input type="date" name="expiry_date">
+
+            <button type="submit" class="btn btn-primary">Add Supply</button>
             <a href="drug_inventory.php" class="btn btn-danger">Cancel</a>
         </form>
     </div>
 </body>
 
 </html>
+
 
